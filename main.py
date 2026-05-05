@@ -120,7 +120,8 @@ def draw_waveform(draw, x, y, w, h, seed=42, progress=0.35, col_active=(140, 80,
         color = (*col_active, 200) if bx < fill_x else (255, 255, 255, 35)
         draw.rounded_rectangle([bx, by, bx + bar_w, by + height], radius=2, fill=color)
 
-FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
+FONT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+
 
 def load_font(size, bold=False, medium=False):
     try:

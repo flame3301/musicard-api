@@ -11,10 +11,10 @@ from typing import Optional
 
 app = FastAPI(title="Music Card Generator")
 
-W, H = 900, 320
+W, H = 900, 380
 CORNER = 28
 THUMB = 200
-THUMB_X, THUMB_Y = 40, 60
+THUMB_X, THUMB_Y = 40, 50
 
 SOURCE_COLORS = {
     "youtube":   (0xCC, 0x00, 0x00),
@@ -37,8 +37,15 @@ def dominant_color(img: Image.Image):
     b = sum(p[2] for p in pixels) // len(pixels)
     return r, g, b
 
-def darken(color, factor=0.25):
-    return tuple(int(c * factor) for c in color)
+def darken(color, factor=0.3):
+    return tuple(max(10, int(c * factor)) for c in color)
+
+def saturate(color, factor=1.4):
+    h, s, v = colorsys.rgb_to_hsv(color[0]/255, color[1]/255, color[2]/255)
+    s = min(1.0, s * factor)
+    v = min(0.55, v * 0.8)
+    r, g, b = colorsys.hsv_to_rgb(h, s, v)
+    return (int(r * 255), int(g * 255), int(b * 255))
 
 def make_gradient_bg(w, h, col1, col2):
     base = Image.new("RGB", (w, h))
@@ -200,11 +207,11 @@ async def generate_card(
         thumb_img = make_placeholder_thumb(THUMB)
 
     dom_col = dominant_color(thumb_img)
-    bg_col1 = darken(dom_col, 0.18)
+    bg_col1 = saturate(dom_col, 1.5)
     bg_col2 = (
-        max(0, int(bg_col1[0] * 0.5 + 10)),
-        max(0, int(bg_col1[1] * 0.5 + 8)),
-        min(255, int(bg_col1[2] * 0.7 + 30)),
+        max(5, int(bg_col1[0] * 0.4)),
+        max(5, int(bg_col1[1] * 0.4)),
+        min(60, int(bg_col1[2] * 0.6 + 15)),
     )
 
     card = make_gradient_bg(W, H, bg_col1, bg_col2).convert("RGBA")
@@ -240,7 +247,7 @@ async def generate_card(
 
     progress = min(1.0, position / max(duration, 1))
     bar_x = 40
-    bar_y = THUMB_Y + THUMB + 22
+    bar_y = THUMB_Y + THUMB + 28
     bar_w = W - 80
     bar_h = 6
 
@@ -253,9 +260,9 @@ async def generate_card(
     tot_w = draw.textlength(tot_str, font=time_font)
     draw.text((bar_x + bar_w - tot_w, bar_y + 14), tot_str, font=time_font, fill=(255, 255, 255, 130))
 
-    wave_y = bar_y + 38
-    wave_h = H - wave_y - 18
-    if wave_h > 10:
+    wave_y = bar_y + 42
+    wave_h = H - wave_y - 20
+    if wave_h > 15:
         draw_waveform(draw, bar_x, wave_y, bar_w, wave_h, seed=seed,
                       progress=progress, col_active=glow_col)
 

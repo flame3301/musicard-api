@@ -184,11 +184,75 @@ async def fetch_thumbnail(url: str) -> Optional[Image.Image]:
         return None
 
 def make_placeholder_thumb(size):
-    img = Image.new("RGB", (size, size), (40, 20, 80))
+    img = Image.new("RGB", (size, size))
     d = ImageDraw.Draw(img)
-    cx, cy, r = size // 2, size // 2, size // 3
-    d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(180, 120, 255), width=3)
-    d.ellipse([cx - r // 3, cy - r // 3, cx + r // 3, cy + r // 3], fill=(180, 120, 255))
+
+    # Sky gradient (top = deep space, bottom = twilight purple)
+    for y in range(size):
+        t = y / size
+        r = int(5 + 40 * t)
+        g = int(5 + 15 * t)
+        b = int(30 + 60 * t)
+        d.line([(0, y), (size, y)], fill=(r, g, b))
+
+    # Stars
+    rng = random.Random(7)
+    for _ in range(60):
+        sx = rng.randint(0, size)
+        sy = rng.randint(0, int(size * 0.65))
+        br = rng.randint(160, 255)
+        sr = rng.randint(0, 1)
+        d.ellipse([sx - sr, sy - sr, sx + sr + 1, sy + sr + 1], fill=(br, br, br))
+
+    # Moon
+    mx, my, mr = int(size * 0.72), int(size * 0.18), int(size * 0.09)
+    d.ellipse([mx - mr, my - mr, mx + mr, my + mr], fill=(255, 245, 200))
+    d.ellipse([mx + int(mr * 0.3), my - int(mr * 0.2),
+               mx + int(mr * 1.1), my + int(mr * 0.8)],
+              fill=(int(5 + 40 * 0.18), int(5 + 15 * 0.18), int(30 + 60 * 0.18)))
+
+    # Distant mountains (light layer)
+    mtn1 = [
+        (0, size), (0, int(size * 0.62)),
+        (int(size * 0.15), int(size * 0.38)),
+        (int(size * 0.3), int(size * 0.55)),
+        (int(size * 0.45), int(size * 0.32)),
+        (int(size * 0.6), int(size * 0.5)),
+        (int(size * 0.75), int(size * 0.28)),
+        (int(size * 0.88), int(size * 0.48)),
+        (size, int(size * 0.35)),
+        (size, size),
+    ]
+    d.polygon(mtn1, fill=(25, 18, 55))
+
+    # Closer mountains (dark layer)
+    mtn2 = [
+        (0, size), (0, int(size * 0.75)),
+        (int(size * 0.1), int(size * 0.58)),
+        (int(size * 0.25), int(size * 0.72)),
+        (int(size * 0.38), int(size * 0.52)),
+        (int(size * 0.52), int(size * 0.68)),
+        (int(size * 0.65), int(size * 0.48)),
+        (int(size * 0.8), int(size * 0.65)),
+        (int(size * 0.9), int(size * 0.55)),
+        (size, int(size * 0.7)),
+        (size, size),
+    ]
+    d.polygon(mtn2, fill=(12, 8, 28))
+
+    # Foreground ground with subtle purple tint
+    ground = [
+        (0, size), (0, int(size * 0.88)),
+        (size, int(size * 0.88)), (size, size)
+    ]
+    d.polygon(ground, fill=(8, 5, 20))
+
+    # Reflection shimmer on ground
+    for i in range(3):
+        rx = int(size * (0.3 + i * 0.15))
+        ry = int(size * 0.91)
+        d.ellipse([rx - 15, ry - 2, rx + 15, ry + 2], fill=(80, 60, 120))
+
     return img
 
 @app.get("/card")
